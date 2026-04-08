@@ -74,7 +74,7 @@ with col2:
                     # 🌟 구글 Gemini API 셋팅
                     genai.configure(api_key=api_key)
                     # 가장 빠르고 가성비 좋은 최신 모델 적용
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    model = genai.GenerativeModel('gemini-2.5-flash')
                     
                     system_prompt = f"""
                     당신은 10년 차 베테랑 방송 작가이자 인터뷰어입니다. 

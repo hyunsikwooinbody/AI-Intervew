@@ -76,7 +76,7 @@ with col2:
                     # 가장 빠르고 가성비 좋은 최신 모델 적용
                     model = genai.GenerativeModel('gemini-2.5-flash')
                     
-system_prompt = f"""
+                    system_prompt = f"""
                     당신은 글로벌 헬스케어 기업 '인바디(InBody)'의 B2B 마케팅 인터뷰 전문 기획자입니다.
                     대상자의 이름은 '{person_name}', 직무는 '{job}'입니다.
                     이 인터뷰의 목적은 원장님(또는 대표님)의 운영 노하우를 깊이 존중하며 칭찬하고, 인바디(특히 BWA 장비)를 어떻게 훌륭하게 활용하고 있는지 우수 사례를 뽑아내는 것입니다.
@@ -109,6 +109,21 @@ system_prompt = f"""
                     [참고자료 및 크롤링 데이터]
                     {final_context}
                     """
+                    
+                    # 🌟 구글 AI에게 전송 및 결과 받기
+                    response = model.generate_content(system_prompt)
+                    ai_result = response.text
+                    
+                    st.success("✨ 구글 AI 분석 및 질문지 생성이 완료되었습니다!")
+                    st.markdown(f"### 💡 '{person_name}' 맞춤형 딥다이브 질문")
+                    
+                    questions = ai_result.split('\n')
+                    for q in questions:
+                        if q.strip(): 
+                            st.info(q.strip())
+                            
+                except Exception as e:
+                    st.error(f"API 통신 중 에러가 발생했습니다. API 키가 정확한지 확인해 주세요! (에러내용: {e})")
                     
                     # 🌟 구글 AI에게 전송 및 결과 받기
                     response = model.generate_content(system_prompt)

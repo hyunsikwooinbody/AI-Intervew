@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # 세션 상태 초기화 (1단계 결과를 2단계로 넘기기 위함)
-if 'generated_questions' not 소 in st.session_state:
+if 'generated_questions' not in st.session_state:
     st.session_state['generated_questions'] = ""
 
 # ==========================================

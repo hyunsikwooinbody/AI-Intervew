@@ -81,23 +81,31 @@ def extract_youtube_transcript(video_id):
 
 # 개별 질문을 AI가 재수정해주는 함수
 def rewrite_question_with_ai(api_key, original_question, user_request):
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash')
-    prompt = f"""
-    당신은 베테랑 인터뷰 기획자입니다.
-    아래의 기존 인터뷰 질문을 사용자의 요청에 맞게 완벽하게 수정해 주세요.
-    
-    [기존 질문]
-    {original_question}
-    
-    [사용자 요청]
-    {user_request}
-    
-    [규칙]
-    반드시 수정된 '질문 텍스트'만 출력하세요. 인사말, 부가 설명, 마크다운 기호는 절대 넣지 마세요.
-    """
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        prompt = f"""
+        당신은 베테랑 인터뷰 기획자입니다.
+        아래의 기존 인터뷰 질문을 사용자의 요청에 맞게 완벽하게 수정해 주세요.
+        
+        [기존 질문]
+        {original_question}
+        
+        [사용자 요청]
+        {user_request}
+        
+        [규칙]
+        반드시 수정된 '질문 텍스트'만 출력하세요. 인사말, 부가 설명, 마크다운 기호는 절대 넣지 마세요.
+        """
+        response = model.generate_content(prompt)
+        
+        # AI가 빈 값을 반환했을 때의 에러 방지
+        if response.text:
+            return response.text.strip()
+        else:
+            return "[AI 응답 오류: 생성된 텍스트가 없습니다. 요청을 조금 바꿔서 다시 시도해 주세요.]"
+    except Exception as e:
+        return f"[AI 통신 오류: {e}]"
 
 # ==========================================
 # 2. UI 및 메인 화면 구성
@@ -195,9 +203,9 @@ with tab1:
                         
                         # 버튼 배치
                         btn_col1, btn_col2, btn_col3 = st.columns([1.5, 2.5, 6])
-                        with btn_col1:
-                            if st.button("✏️ 직접 편집", key=f"btn_edit_{i}"):
-                                st.session_state[f"mode_{i}"] = "manual"
+                        with btn_col2:
+                            if st.button("🤖 질문 재생성", key=f"btn_ai_{i}"):
+                                st.session_state[f"mode_{i}"] = "ai"
                         with btn_col2:
                             if st.button("🤖 질문 변경 AI 프롬프트 작성", key=f"btn_ai_{i}"):
                                 st.session_state[f"mode_{i}"] = "ai"

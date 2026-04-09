@@ -201,17 +201,19 @@ with tab1:
                     with st.container():
                         st.markdown(f"{line}")
                         
-                        # 버튼 배치
+                        # 버튼 배치 (3열 구조)
                         btn_col1, btn_col2, btn_col3 = st.columns([1.5, 2.5, 6])
+                        with btn_col1:
+                            if st.button("✏️ 직접 편집", key=f"btn_edit_{i}"):
+                                st.session_state[f"mode_{i}"] = "manual"
                         with btn_col2:
+                            # 💡 요청하신 대로 버튼 텍스트를 "질문 재생성"으로 깔끔하게 줄였습니다!
                             if st.button("🤖 질문 재생성", key=f"btn_ai_{i}"):
                                 st.session_state[f"mode_{i}"] = "ai"
-                        with btn_col2:
-                            if st.button("🤖 질문 변경 AI 프롬프트 작성", key=f"btn_ai_{i}"):
-                                st.session_state[f"mode_{i}"] = "ai"
                                 
-                        # 편집 모드 활성화 시
+                        # 편집 모드 활성화 시 나오는 UI
                         current_mode = st.session_state.get(f"mode_{i}")
+                        
                         if current_mode == "manual":
                             new_text = st.text_area("직접 수정", value=line, key=f"text_manual_{i}", label_visibility="collapsed")
                             if st.button("✅ 저장", key=f"save_manual_{i}"):
@@ -227,9 +229,12 @@ with tab1:
                                 else:
                                     with st.spinner("AI가 질문을 수정 중입니다..."):
                                         new_q = rewrite_question_with_ai(api_key, line, ai_req)
-                                        st.session_state['edited_questions'][i] = new_q
+                                        # 에러가 아닐 때만 저장하도록 안전장치 추가
+                                        if new_q and not new_q.startswith("[AI"):
+                                            st.session_state['edited_questions'][i] = new_q
                                         st.session_state[f"mode_{i}"] = None
                                         st.rerun()
+                                        
                         st.markdown("---")
 
 # ------------------------------------------

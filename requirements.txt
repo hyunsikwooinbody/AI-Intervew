@@ -3,3 +3,5 @@ google-generativeai
 beautifulsoup4
 requests
 youtube-transcript-api
+PyPDF2
+python-docx

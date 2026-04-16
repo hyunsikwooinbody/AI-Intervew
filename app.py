@@ -179,8 +179,8 @@ with tab1:
                         """
                         
                         response = model.generate_content(system_prompt)
-                        # AI 결과를 줄 단위로 쪼개서 세션 딕셔너리에 저장
-                        raw_lines = response.text.split('\n')
+                        # 💡 텍스트 길이가 너무 짧은 빈 줄이나 단순 기호는 아예 저장하지 않고 걸러냅니다.
+                        raw_lines = [line.strip() for line in response.text.split('\n') if len(line.strip()) > 2]
                         st.session_state['edited_questions'] = {i: line for i, line in enumerate(raw_lines)}
                         st.rerun() # 화면 새로고침하여 아래 편집기 UI 출력
                                 

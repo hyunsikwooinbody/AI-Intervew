@@ -161,18 +161,22 @@ with tab1:
                         system_prompt = f"""
                         당신은 글로벌 헬스케어 기업 '인바디(InBody)'의 B2B 마케팅 인터뷰 전문 기획자입니다.
                         대상자: '{person_name}', 직무: '{job}'
-                        이 인터뷰의 목적은 원장님(대표님)의 운영 노하우를 존중하며, 인바디(BWA 등) 활용 우수 사례를 뽑아내는 것입니다.
+                        
+                        [🚨 필수 규칙 - 매우 엄격함]
+                        1. 스크립트 금지: "안녕하세요", "감사합니다", "시간 내주셔서..." 등의 인사말이나 도입부 안내 멘트는 절대(Never) 작성하지 마세요. 오직 [챕터 제목]과 [질문]만 출력하세요.
+                        2. 넘버링 강제: 모든 질문 앞에는 반드시 "Q1.", "Q2.", "Q3." 형태로 명확하게 번호를 붙이세요. (예: "Q1. 원장님 병원의...")
+                        3. 직무({job}) 맞춤: 양방은 '표준 진료/모니터링', 한방은 '치료법 시너지', 피트니스는 '회원 동기부여'에 초점.
+                        4. 제공된 [참고자료]에 '기존 인터뷰 답변지'가 있다면 그 형식을 철저히 벤치마킹하세요.
 
-                        [🚨 필수 규칙]
-                        1. 직무({job}) 맞춤 질문: 양방은 '표준 진료/모니터링 데이터', 한방은 '치료법과의 시너지', 피트니스는 '회원 동기부여'에 초점.
-                        2. 만약 제공된 [참고자료]에 '기존 우수 인터뷰 답변지' 같은 문서 내용이 있다면, 해당 문서의 **질문 형식, 톤앤매너, 질문의 깊이를 철저하게 벤치마킹하여 현재 대상자에게 적용**하세요.
-                        3. 절반 이상은 자사 장비(인바디) 도입 이유 및 활용 노하우와 연결하세요.
-
-                        [📋 출력 구조 (헤딩 유지)]
-                        **자기소개** (1~2개)
-                        **Why InBody & How InBody** (3~4개)
-                        **{person_name} X InBody** (2~3개)
-                        **With InBody** (1~2개)
+                        [📋 출력 구조 (아래 헤딩을 그대로 출력할 것)]
+                        **자기소개**
+                        (질문 1~2개)
+                        **Why InBody & How InBody**
+                        (질문 3~4개)
+                        **{person_name} X InBody**
+                        (질문 2~3개)
+                        **With InBody**
+                        (질문 1~2개)
 
                         [참고자료 및 업로드 문서]
                         {final_context}
@@ -193,49 +197,58 @@ with tab1:
             st.divider()
             
             for i, line in st.session_state['edited_questions'].items():
-                if line.startswith('**'):
-                    # 카테고리 제목
-                    st.markdown(f"#### {line.replace('**', '')}")
-                elif line.strip():
-                    # 개별 질문 단위
-                    with st.container():
-                        st.markdown(f"{line}")
-                        
-                        # 버튼 배치 (3열 구조)
-                        btn_col1, btn_col2, btn_col3 = st.columns([1.5, 2.5, 6])
-                        with btn_col1:
-                            if st.button("✏️ 직접 편집", key=f"btn_edit_{i}"):
-                                st.session_state[f"mode_{i}"] = "manual"
-                        with btn_col2:
-                            # 💡 요청하신 대로 버튼 텍스트를 "질문 재생성"으로 깔끔하게 줄였습니다!
-                            if st.button("🤖 질문 재생성", key=f"btn_ai_{i}"):
-                                st.session_state[f"mode_{i}"] = "ai"
-                                
-                        # 편집 모드 활성화 시 나오는 UI
-                        current_mode = st.session_state.get(f"mode_{i}")
-                        
-                        if current_mode == "manual":
-                            new_text = st.text_area("직접 수정", value=line, key=f"text_manual_{i}", label_visibility="collapsed")
-                            if st.button("✅ 저장", key=f"save_manual_{i}"):
-                                st.session_state['edited_questions'][i] = new_text
-                                st.session_state[f"mode_{i}"] = None
-                                st.rerun()
-                                
-                        elif current_mode == "ai":
-                            ai_req = st.text_input("AI에게 수정 요청", placeholder="예: 조금 더 원장님을 띄워주는 부드러운 말투로 바꿔줘", key=f"text_ai_{i}")
-                            if st.button("✨ AI 재생성", key=f"save_ai_{i}"):
-                                if not api_key:
-                                    st.error("API 키를 먼저 입력하세요.")
-                                else:
-                                    with st.spinner("AI가 질문을 수정 중입니다..."):
-                                        new_q = rewrite_question_with_ai(api_key, line, ai_req)
-                                        # 에러가 아닐 때만 저장하도록 안전장치 추가
-                                        if new_q and not new_q.startswith("[AI"):
-                                            st.session_state['edited_questions'][i] = new_q
-                                        st.session_state[f"mode_{i}"] = None
-                                        st.rerun()
-                                        
-                        st.markdown("---")
+                clean_line = line.strip()
+                
+                # 💡 1. 빈 줄 및 쓰레기 값 완벽 차단 (길이가 5글자 이하면 아예 무시)
+                if len(clean_line) < 5:
+                    continue
+                
+                # 💡 2. 챕터 제목(헤딩) 판별기: 'Q'로 시작하지 않으면서 마크다운이 있거나 영문/특정 단어인 경우
+                is_header = clean_line.startswith(('**', '##')) or ("InBody" in clean_line and "Q" not in clean_line) or ("자기소개" in clean_line and "Q" not in clean_line)
+                
+                if is_header:
+                    header_text = clean_line.replace('**', '').replace('##', '').strip()
+                    st.markdown(f"#### 📌 {header_text}")
+                    continue
+                
+                # 💡 3. 인사말 스크립트 필터링: 문장에 '?'가 없거나 'Q'로 시작하지 않으면 버튼 안 달고 무시
+                if not (clean_line.endswith('?') or '?' in clean_line or clean_line.startswith(('Q', 'q', '1', '2'))):
+                    continue
+                    
+                # --- 진짜 질문에만 UI 버튼 달기 ---
+                with st.container():
+                    st.markdown(f"**{clean_line}**") # 질문 텍스트 볼드처리로 가독성 증가
+                    
+                    btn_col1, btn_col2, btn_col3 = st.columns([1.5, 2.5, 6])
+                    with btn_col1:
+                        if st.button("✏️ 직접 편집", key=f"btn_edit_{i}"):
+                            st.session_state[f"mode_{i}"] = "manual"
+                    with btn_col2:
+                        if st.button("🤖 질문 재생성", key=f"btn_ai_{i}"):
+                            st.session_state[f"mode_{i}"] = "ai"
+                            
+                    current_mode = st.session_state.get(f"mode_{i}")
+                    
+                    if current_mode == "manual":
+                        new_text = st.text_area("직접 수정", value=clean_line, key=f"text_manual_{i}", label_visibility="collapsed")
+                        if st.button("✅ 저장", key=f"save_manual_{i}"):
+                            st.session_state['edited_questions'][i] = new_text
+                            st.session_state[f"mode_{i}"] = None
+                            st.rerun()
+                            
+                    elif current_mode == "ai":
+                        ai_req = st.text_input("AI에게 수정 요청", placeholder="예: 조금 더 원장님을 띄워주는 부드러운 말투로 바꿔줘", key=f"text_ai_{i}")
+                        if st.button("✨ AI 재생성", key=f"save_ai_{i}"):
+                            if not api_key:
+                                st.error("API 키를 먼저 입력하세요.")
+                            else:
+                                with st.spinner("AI가 질문을 수정 중입니다..."):
+                                    new_q = rewrite_question_with_ai(api_key, clean_line, ai_req)
+                                    if new_q and not new_q.startswith("[AI"):
+                                        st.session_state['edited_questions'][i] = new_q
+                                    st.session_state[f"mode_{i}"] = None
+                                    st.rerun()
+                    st.markdown("---")
 
 # ------------------------------------------
 # [탭 2] 스토리보드 생성 영역 
